@@ -32,6 +32,7 @@ function formatTimeAgo(unixTime: number): string {
 
 const StoryCard: React.FC<StoryCardProps> = ({ story, storyType }) => {
   const router = useRouter();
+  
   return (
     <TouchableOpacity onPress={() => router.push(`/${storyType}/${story.id}`)}>
       <View style={styles.card}>
@@ -43,11 +44,14 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, storyType }) => {
           <Text style={styles.title}>{story.title}</Text>
           <Text style={styles.reads}>{story.score} points</Text>
         </View>
-        <Image
-          source={{ uri: PLACEHOLDER }}
-          style={styles.thumbnail}
-          resizeMode="cover"
-        />
+        {story.imageUrl && story.imageUrl !== PLACEHOLDER && (
+          <Image
+            source={{ uri: story.imageUrl }}
+            style={styles.thumbnail}
+            resizeMode="cover"
+          />
+        )} 
+        
       </View>
     </TouchableOpacity>
   );

@@ -18,7 +18,6 @@ const Layout: React.FC = () => {
           backgroundColor: WHITE,
           paddingTop: 10
         },
-        headerShown: false
       }}
     >
       <Tabs.Screen

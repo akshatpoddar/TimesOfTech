@@ -1,10 +1,10 @@
 import { SafeAreaView, Text } from 'react-native';
-import { ORANGE, WHITE, FONT_FAMILY } from '@constants/theme'
+import { WHITE } from '@constants/theme'
 import { useEffect, useState } from 'react'
 import { Story } from '@backend/types/hn';
 import StoryList from '@components/StoryList/StoryList';
 import TopBar from '@components/TopBar/TopBar';
-import { fetchStoriesWithCache } from 'utils/storyCache';
+import { storyService } from 'utils/storyService';
 
 export default function AskScreen() {
 
@@ -15,14 +15,14 @@ export default function AskScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    const stories = await fetchStoriesWithCache("show", true);
+    const stories = await storyService.getStories("show", true);
     setStories(stories);
     setRefreshing(false);
   };
 
   useEffect(() => {
     async function fetchAllStories() {
-      const initialStories = await fetchStoriesWithCache("show", false);
+      const initialStories = await storyService.getStories("show", false);
       setStories(initialStories);
       setLoading(false);
     }

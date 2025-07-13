@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Story } from '@backend/types/hn';
 import StoryList from '@components/StoryList/StoryList';
 import TopBar from '@components/TopBar/TopBar';
-import { fetchStoriesWithCache } from 'utils/storyCache';
+import { storyService } from 'utils/storyService';
 
 export default function AskScreen() {
 
@@ -15,14 +15,14 @@ export default function AskScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    const stories = await fetchStoriesWithCache("ask", true);
+    const stories = await storyService.getStories("ask", true);
     setStories(stories);
     setRefreshing(false);
   };
 
   useEffect(() => {
     async function fetchAllStories() {
-      const initialStories = await fetchStoriesWithCache("ask", false);
+      const initialStories = await storyService.getStories("ask", false);
       setStories(initialStories);
       setLoading(false);
     }

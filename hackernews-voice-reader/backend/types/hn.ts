@@ -28,6 +28,7 @@ export interface Story extends Item {
   url?: string;
   text?: string;
   kids?: number[];
+  imageUrl?: string; // Added field for storing fetched image URLs
 }
 
 export interface Comment extends Item {

@@ -1,12 +1,12 @@
 import React from 'react';
 import {Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text, ActivityIndicator, useWindowDimensions, Button } from 'react-native';
+import { Text, useWindowDimensions } from 'react-native';
 import { getStoryById } from '@backend/controller/hnController';
 import { Story } from '@backend/types/hn';
 import { ORANGE } from '@constants/theme';
-import StoryDetail from '@components/StoryList/StoryDetail';
 import LoadingIndicator from '@components/Loading';
+import StoryPage from '@components/StoryList/StoryPage';
 
 export default function StoryDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -27,14 +27,11 @@ export default function StoryDetailScreen() {
 
   if (loading) return <LoadingIndicator/>;
   if (!story) return <Text style={{ margin: 20 }}>Story not found.</Text>;
-  const source = {
-    html: story.text || ' '
-  }
 
   return (
     <>
     <Stack.Screen options={{ title: "Story", headerTintColor: ORANGE}} />
-    <StoryDetail story={story} source={source} width={width}/>
+    <StoryPage story={story} storyType="show" />
     </>
   );
 }

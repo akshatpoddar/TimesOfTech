@@ -3,14 +3,17 @@ import React from 'react';
 import { Story } from '@backend/types/hn';
 import RenderHTML from 'react-native-render-html';
 import { FONT_FAMILY, ORANGE } from '@constants/theme';
+import ReadAloudButton from './ReadAloudButton';
 
 interface StoryDetailProp {
   story: Story;
-  source: { html: string };
-  width: number;
 }
 
-const StoryDetail: React.FC<StoryDetailProp> = ({ story, source, width }) => {
+const StoryDetail: React.FC<StoryDetailProp> = ({ story }) => {
+  const source = {
+    html: story.text || ' ',
+  };
+  
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{story.title}</Text>
@@ -22,49 +25,48 @@ const StoryDetail: React.FC<StoryDetailProp> = ({ story, source, width }) => {
       </View>
 
       {story.text ? (
-        <RenderHTML
-          source={source}
-          contentWidth={width}
-          tagsStyles={{
-            p: {
-              fontSize: 16,
-              color: '#333',
-              marginBottom: 14,
-              lineHeight: 24,
-              fontFamily: FONT_FAMILY,
-            },
-            a: {
-              color: ORANGE,
-              textDecorationLine: 'underline',
-            },
-            strong: {
-              fontWeight: 'bold',
-            },
-            em: {
-              fontStyle: 'italic',
-            },
-            blockquote: {
-              paddingHorizontal: 14,
-              borderLeftWidth: 4,
-              borderLeftColor: ORANGE,
-              color: '#666',
-              fontStyle: 'italic',
-              marginVertical: 12,
-            },
-            li: {
-              marginBottom: 8,
-              marginLeft: 10,
-              fontSize: 15,
-              fontFamily: FONT_FAMILY,
-            },
-            ul: {
-              paddingLeft: 20,
-            },
-            ol: {
-              paddingLeft: 20,
-            },
-          }}
-        />
+        <>
+          <RenderHTML
+            source={source}
+            tagsStyles={{
+              p: {
+                fontSize: 16,
+                color: '#333',
+                marginBottom: 12,
+                fontFamily: FONT_FAMILY
+              },
+              a: {
+                color: ORANGE,
+                textDecorationLine: 'underline'
+              },
+              strong: {
+                fontWeight: 'bold'
+              },
+              em: {
+                fontStyle: 'italic'
+              },
+              blockquote: {
+                paddingHorizontal: 12,
+                borderLeftWidth: 4,
+                borderLeftColor: ORANGE,
+                color: '#666',
+                fontStyle: 'italic',
+                marginVertical: 8
+              },
+              li: {
+                marginBottom: 6,
+                marginLeft: 10,
+              },
+              ul: {
+                paddingLeft: 16,
+              },
+              ol: {
+                paddingLeft: 16,
+              }
+            }}
+          />
+          <ReadAloudButton storyText={story.text} />
+        </>
       ) : null}
     </View>
   );

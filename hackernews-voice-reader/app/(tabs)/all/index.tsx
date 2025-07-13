@@ -10,13 +10,14 @@ import {
   FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  ScrollView,
 } from 'react-native';
 import TopBar from '@components/TopBar/TopBar';
 import StoryList from '@components/StoryList/StoryList';
 import { WHITE, ORANGE, FONT_FAMILY } from '@constants/theme';
 import { Story } from '@backend/types/hn';
-import { fetchStoriesWithCache } from 'utils/storyCache';
-import { Stack } from 'expo-router';
+import { storyService } from 'utils/storyService';
+import { useFocusEffect } from 'expo-router';
 import FadeView from '@components/FadeView';
 
 const SORT_OPTIONS = [
@@ -35,6 +36,8 @@ export default function AllScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const [hasMore, setHasMore] = useState(true);
+  const [currentLimit, setCurrentLimit] = useState(25);
 
   const indicatorAnim = useRef(new Animated.Value(0)).current;
   const segmentWidth = useRef(0);
@@ -62,57 +65,71 @@ export default function AllScreen() {
     });
   };
 
+  const scrollViewRef = useRef<ScrollView | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (scrollViewRef.current) {
+        scrollViewRef.current.setNativeProps({ scrollEnabled: true });
+      }
+      return () => {
+        if (scrollViewRef.current) {
+          scrollViewRef.current.setNativeProps({ scrollEnabled: false });
+        }
+      };
+    }, [])
+  )
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    const stories = await fetchStoriesWithCache(sort, true);
+    setCurrentLimit(25);
+    const stories = await storyService.getStories(sort, true, 25);
     setStories(stories);
+    setHasMore(stories.length >= 25);
     setRefreshing(false);
   };
 
+  const handleLoadMore = async () => {
+    if (!hasMore) return;
+    
+    const newLimit = currentLimit + 10;
+    const newStories = await storyService.getStories(sort, false, newLimit);
+    setStories(newStories);
+    setCurrentLimit(newLimit);
+    setHasMore(newStories.length >= newLimit);
+  };
+
   useEffect(() => {
-    async function fetchAllStories() {
-      await Promise.all(SORT_TYPES.map(type => fetchStoriesWithCache(type, false)));
-      const initialStories = await fetchStoriesWithCache(sort, false);
+    async function fetchInitialStories() {
+      setLoading(true);
+      // Preload current sort type first
+      const initialStories = await storyService.getStories(sort, false, 25);
       setStories(initialStories);
+      setCurrentLimit(25);
+      setHasMore(initialStories.length >= 25);
       setLoading(false);
+      
+      // Preload other story types in background
+      setTimeout(async () => {
+        await Promise.all(SORT_TYPES.map(type => 
+          storyService.getStories(type, false, 25)
+        ));
+      }, 1000);
     }
-    fetchAllStories();
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-    setStories([]);
-    setLoading(true);
-    async function fetchSortStories() {
-      const sortStories = await fetchStoriesWithCache(sort, false);
-      if (isMounted) {
-        setStories(sortStories);
-        setLoading(false);
-      }
-    }
-    fetchSortStories();
-
-    // Animate the indicator
-    const toValue = SORT_TYPES.indexOf(sort) * (segmentWidth.current || 0);
-    Animated.spring(indicatorAnim, {
-      toValue,
-      useNativeDriver: true,
-      stiffness: 100,
-      damping: 25,
-      mass: 0.4,
-    }).start();
-
-    return () => { isMounted = false; };
+    fetchInitialStories();
   }, [sort]);
 
   const onLayoutSegment = (event: LayoutChangeEvent) => {
-    const width = event.nativeEvent.layout.width / SORT_OPTIONS.length;
-    segmentWidth.current = width;
+    segmentWidth.current = event.nativeEvent.layout.width;
   };
+
+  const handleSortChange = (newSort: SortType) => {
+    setSort(newSort);
+    setCurrentLimit(25);
+    setHasMore(true);
+  };
+
   return (
-    <>
-    <Stack.Screen options={{ title:"All"}} />
     <SafeAreaView style={{ flex: 1, backgroundColor: WHITE }}>
       <TopBar search={search} setSearch={setSearch} />
 
@@ -130,7 +147,7 @@ export default function AllScreen() {
           <TouchableOpacity
             key={option.value}
             style={styles.segment}
-            onPress={() => setSort(option.value as SortType)}
+            onPress={() => handleSortChange(option.value as SortType)}
           >
             <Text
               style={[
@@ -151,97 +168,59 @@ export default function AllScreen() {
           visible={sort === option.value}
         >
           <StoryList
-            sort={option.value as SortType}
             stories={stories}
             refreshing={refreshing}
             onRefresh={handleRefresh}
             loading={loading}
             search={search}
             storyType={storyType}
+            onLoadMore={handleLoadMore}
+            hasMore={hasMore}
           />
         </FadeView>
       ))}
     </SafeAreaView>
-    </>
   )
-
-  // return (
-  //   <SafeAreaView style={{ flex: 1, backgroundColor: WHITE }}>
-  //     <TopBar search={search} setSearch={setSearch} />
-  //     <View style={styles.segmentedContainer} onLayout={onLayoutSegment}>
-  //       <Animated.View
-  //         style={[
-  //           styles.indicator,
-  //           {
-  //             width: `${100 / SORT_OPTIONS.length}%`,
-  //             transform: [{ translateX: indicatorAnim }],
-  //           },
-  //         ]}
-  //       />
-  //       {SORT_OPTIONS.map(option => (
-  //         <TouchableOpacity
-  //           key={option.value}
-  //           style={styles.segment}
-  //           onPress={() => setSort(option.value as SortType)}
-  //         >
-  //           <Text
-  //             style={[
-  //               styles.segmentText,
-  //               sort === option.value && styles.segmentTextActive,
-  //             ]}
-  //           >
-  //             {option.label}
-  //           </Text>
-  //         </TouchableOpacity>
-  //       ))}
-  //     </View>
-  //     <StoryList
-  //       stories={stories}
-  //       refreshing={refreshing}
-  //       onRefresh={handleRefresh}
-  //       loading={loading}
-  //       search={search}
-  //       storyType={storyType}
-  //     />
-  //   </SafeAreaView>
-  // );
 }
 
 const styles = StyleSheet.create({
   segmentedContainer: {
     flexDirection: 'row',
-    position: 'relative',
-    marginTop: 8,
-    marginBottom: 4,
-    marginHorizontal: 16,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#f5f5f5',
     borderRadius: 12,
+    marginHorizontal: 16,
+    marginVertical: 12,
     padding: 4,
-    overflow: 'hidden',
+    position: 'relative',
   },
   segment: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 8,
     alignItems: 'center',
     borderRadius: 8,
     zIndex: 1,
   },
   segmentText: {
-    color: '#888',
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
     fontFamily: FONT_FAMILY,
-    fontWeight: '600',
-    fontSize: 15,
   },
   segmentTextActive: {
-    color: WHITE,
+    color: ORANGE,
+    fontWeight: '600',
   },
   indicator: {
     position: 'absolute',
     top: 4,
     bottom: 4,
-    left: 0,
-    backgroundColor: ORANGE,
+    backgroundColor: WHITE,
     borderRadius: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
     zIndex: 0,
   },
 });
